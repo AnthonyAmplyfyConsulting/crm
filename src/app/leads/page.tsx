@@ -2,9 +2,10 @@
 
 import { Navbar } from "@/components/layout/Navbar";
 import { useState, useEffect } from "react";
-import { Plus, Upload, Search, X, Loader2 } from "lucide-react";
+import { Plus, Upload, Search, X, Loader2, Trash2 } from "lucide-react";
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/client";
+import { deleteLead } from "@/actions/leads";
 
 interface Lead {
     id: string;
@@ -113,7 +114,37 @@ export default function LeadsPage() {
             }
         } catch (error) {
             console.error('Error adding lead:', error);
-            // You might want to add a toast notification here
+        }
+    };
+
+    const handleDeleteLead = async (id: string) => {
+        if (confirm("Are you sure you want to delete this lead?")) {
+            // Optimistic update
+            const previousLeads = [...leads];
+            setLeads(leads.filter(l => l.id !== id));
+
+            try {
+                // Check if it's a freshly imported lead (mock ID) or a real DB lead
+                if (id.startsWith('imported-')) {
+                    // Just local delete is enough for imported ones that weren't saved
+                    // But if we saved them to DB (which we didn't in handleFileUpload yet), we'd need to delete from DB
+                    // Current implementation of 'import' just adds to local state without DB save logic shown in snippet
+                    // So local delete is fine.
+                    return;
+                }
+
+                const result = await deleteLead(id);
+                if (result.error) {
+                    alert(result.error);
+                    setLeads(previousLeads); // Revert
+                } else {
+                    // Success, no need to alert, just stays deleted
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to delete lead.");
+                setLeads(previousLeads);
+            }
         }
     };
 
@@ -196,6 +227,15 @@ export default function LeadsPage() {
                                             </span>
                                         </td>
                                         <td className="p-4 text-gray-500 text-sm truncate max-w-xs">{lead.description}</td>
+                                        <td className="p-4 text-center">
+                                            <button
+                                                onClick={() => handleDeleteLead(lead.id)}
+                                                className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors"
+                                                title="Delete Lead"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                                 {leads.length === 0 && (

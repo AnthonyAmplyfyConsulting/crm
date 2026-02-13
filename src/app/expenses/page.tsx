@@ -2,8 +2,9 @@
 
 import { Navbar } from "@/components/layout/Navbar";
 import { useState, useEffect } from "react";
-import { Plus, Upload, Receipt, DollarSign, X } from "lucide-react";
+import { Plus, Upload, Receipt, DollarSign, X, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { deleteExpense } from "@/actions/expenses";
 
 interface Expense {
     id: string;
@@ -54,6 +55,7 @@ export default function ExpensesPage() {
     }, []);
 
     const handleAddExpense = async (e: React.FormEvent) => {
+        // ... (leave existing implementation alone, don't replace with comment this time!)
         e.preventDefault();
 
         try {
@@ -94,6 +96,28 @@ export default function ExpensesPage() {
             }
         } catch (error) {
             console.error('Error adding expense:', error);
+        }
+    };
+
+    const handleDeleteExpense = async (id: string) => {
+        if (confirm("Are you sure you want to delete this expense?")) {
+            // Optimistic update
+            const previousExpenses = [...expenses];
+            setExpenses(expenses.filter(e => e.id !== id));
+
+            try {
+                const result = await deleteExpense(id);
+                if (result.error) {
+                    alert(result.error);
+                    setExpenses(previousExpenses); // Revert
+                } else {
+                    // Success
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to delete expense.");
+                setExpenses(previousExpenses);
+            }
         }
     };
 
@@ -159,9 +183,16 @@ export default function ExpensesPage() {
                                             </span>
                                         </td>
                                         <td className="p-4 text-gray-900 font-medium text-right">${expense.amount.toFixed(2)}</td>
-                                        <td className="p-4 text-center">
-                                            <button className="text-gray-400 hover:text-blood-orange-600 transition-colors">
-                                                <Receipt className="w-4 h-4 mx-auto" />
+                                        <td className="p-4 text-center flex items-center justify-center gap-2">
+                                            <button className="text-gray-400 hover:text-blood-orange-600 transition-colors" title="View Receipt">
+                                                <Receipt className="w-4 h-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteExpense(expense.id)}
+                                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Delete Expense"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
                                             </button>
                                         </td>
                                     </tr>

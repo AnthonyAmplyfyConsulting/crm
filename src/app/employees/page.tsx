@@ -1,11 +1,10 @@
 "use client";
 
 import { Navbar } from "@/components/layout/Navbar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Search, User, Mail, Phone, Briefcase, Trash2, ShieldCheck, X } from "lucide-react";
-import { inviteEmployee } from "@/actions/employees";
+import { inviteEmployee, deleteEmployee } from "@/actions/employees";
 import { createClient } from "@/lib/supabase/client";
-import { useEffect } from "react";
 
 interface Employee {
     id: string;
@@ -85,9 +84,25 @@ export default function EmployeesPage() {
         }
     };
 
-    const handleDeleteEmployee = (id: string) => {
+    const handleDeleteEmployee = async (id: string) => {
         if (confirm("Are you sure you want to remove this employee? This will revoke their access.")) {
+            // Optimistic update
+            const previousEmployees = [...employees];
             setEmployees(employees.filter(e => e.id !== id));
+
+            try {
+                const result = await deleteEmployee(id);
+                if (result.error) {
+                    alert(result.error);
+                    setEmployees(previousEmployees); // Revert on error
+                } else {
+                    alert(result.message);
+                }
+            } catch (err) {
+                console.error(err);
+                alert("Failed to delete employee.");
+                setEmployees(previousEmployees); // Revert on error
+            }
         }
     };
 
