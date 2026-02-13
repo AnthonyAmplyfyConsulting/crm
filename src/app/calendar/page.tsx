@@ -79,23 +79,72 @@ export default function CalendarPage() {
         setIsModalOpen(true);
     };
 
-    const handleAddEvent = (e: React.FormEvent) => {
+    const handleAddEvent = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDate) return;
 
-        const newEvent: Event = {
-            id: Math.random().toString(36).substr(2, 9),
-            title: eventTitle,
-            date: selectedDate,
-            time: eventTime,
-            type: eventType,
-            assignee,
-        };
+        try {
+            // Combine date and time
+            const [hours, minutes] = eventTime.split(':');
+            const eventDateTime = new Date(selectedDate);
+            eventDateTime.setHours(parseInt(hours), parseInt(minutes));
 
-        setEvents([...events, newEvent]);
-        setIsModalOpen(false);
-        setEventTitle("");
-        setEventTime("");
+            // Find assignee ID if possible, otherwise just store ID if we had it. 
+            // The table expects UUID. The dropdown currently gives names. 
+            // We need to map the name back to an ID or update the dropdown to valid values.
+            // Let's look at how I implemented the dropdown.
+            // value={emp.full_name}, but I should use emp.id to get the UUID.
+
+            // Wait, I need to check the dropdown implementation first.
+            // It maps emp.full_name to value. I should change that to emp.id.
+
+            let assigneeId = null;
+            if (assignee !== 'Me') {
+                const selectedEmployee = employees.find(emp => emp.full_name === assignee);
+                assigneeId = selectedEmployee?.id;
+            } else {
+                // If 'Me', we need current user ID. 
+                // For now, let's leave assignee null or handle it if we have auth context.
+                const { data: { user } } = await supabase.auth.getUser();
+                assigneeId = user?.id;
+            }
+
+            const { data, error } = await supabase
+                .from('events')
+                .insert([
+                    {
+                        title: eventTitle,
+                        date: eventDateTime.toISOString(),
+                        type: eventType,
+                        assignee: assigneeId,
+                        // created_by: // Handled by RLS or default? Schema says references profiles(id).
+                    }
+                ])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                // We need to fetch the assignee name to display it in the local state or reload
+                // For now, let's just add it to local state to reflect UI change immediately
+                const newEvent: Event = {
+                    id: data.id,
+                    title: data.title,
+                    date: new Date(data.date), // Convert back to Date object for local usage
+                    time: format(new Date(data.date), 'HH:mm'),
+                    type: data.type,
+                    assignee: assignee // Keep the display name for local state if possible, or we need to map ID back to name
+                };
+
+                setEvents([...events, newEvent]);
+                setIsModalOpen(false);
+                setEventTitle("");
+                setEventTime("");
+            }
+        } catch (error) {
+            console.error('Error adding event:', error);
+        }
     };
 
     return (
@@ -255,7 +304,7 @@ export default function CalendarPage() {
                                     >
                                         <option value="Me">My Calendar</option>
                                         {employees.map(emp => (
-                                            <option key={emp.id} value={emp.full_name}>{emp.full_name}</option>
+                                            <option key={emp.id} value={emp.id}>{emp.full_name}</option>
                                         ))}
                                     </select>
                                 </div>

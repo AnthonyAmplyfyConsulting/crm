@@ -61,28 +61,43 @@ export default function LeadsPage() {
         });
     };
 
-    const handleAddLead = (e: React.FormEvent) => {
+    const handleAddLead = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newLead: Lead = {
-            id: Math.random().toString(36).substr(2, 9),
-            business_name: formData.businessName,
-            contact_name: formData.contactName,
-            email: formData.email,
-            phone: formData.phone,
-            status: formData.status,
-            description: formData.notes
-        };
 
-        setLeads([...leads, newLead]);
-        setFormData({
-            businessName: "",
-            contactName: "",
-            email: "",
-            phone: "",
-            status: "Cold",
-            notes: ""
-        });
-        setIsModalOpen(false);
+        try {
+            const { data, error } = await supabase
+                .from('leads')
+                .insert([
+                    {
+                        business_name: formData.businessName,
+                        contact_name: formData.contactName,
+                        email: formData.email,
+                        phone: formData.phone,
+                        status: formData.status,
+                        description: formData.notes
+                    }
+                ])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                setLeads([...leads, data]);
+                setFormData({
+                    businessName: "",
+                    contactName: "",
+                    email: "",
+                    phone: "",
+                    status: "Cold",
+                    notes: ""
+                });
+                setIsModalOpen(false);
+            }
+        } catch (error) {
+            console.error('Error adding lead:', error);
+            // You might want to add a toast notification here
+        }
     };
 
     return (

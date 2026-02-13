@@ -3,6 +3,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { useState } from "react";
 import { Plus, Upload, Receipt, DollarSign, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface Expense {
     id: string;
@@ -17,6 +18,7 @@ interface Expense {
 export default function ExpensesPage() {
     const [expenses, setExpenses] = useState<Expense[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const supabase = createClient();
 
     // Form State
     const [description, setDescription] = useState("");
@@ -25,23 +27,48 @@ export default function ExpensesPage() {
 
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
-    const handleAddExpense = (e: React.FormEvent) => {
+    const handleAddExpense = async (e: React.FormEvent) => {
         e.preventDefault();
-        const newExpense: Expense = {
-            id: Math.random().toString(36).substr(2, 9),
-            description,
-            amount: parseFloat(amount),
-            date: new Date().toISOString().split('T')[0],
-            status: "Pending",
-            submittedBy: "Current User", // Replace with auth user
-            receiptUrl: receipt ? URL.createObjectURL(receipt) : undefined,
-        };
 
-        setExpenses([newExpense, ...expenses]);
-        setIsModalOpen(false);
-        setDescription("");
-        setAmount("");
-        setReceipt(null);
+        try {
+            // TODO: Handle receipt upload to Supabase Storage if bucket exists
+
+            const { data, error } = await supabase
+                .from('expenses')
+                .insert([
+                    {
+                        description,
+                        amount: parseFloat(amount),
+                        date: new Date().toISOString().split('T')[0],
+                        status: 'Pending',
+                    }
+                ])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            if (data) {
+                setExpenses([
+                    {
+                        id: data.id,
+                        description: data.description,
+                        amount: data.amount,
+                        date: data.date,
+                        status: data.status,
+                        receiptUrl: data.receipt_url,
+                        submittedBy: "Current User" // Placeholder until we fetch user
+                    },
+                    ...expenses
+                ]);
+                setIsModalOpen(false);
+                setDescription("");
+                setAmount("");
+                setReceipt(null);
+            }
+        } catch (error) {
+            console.error('Error adding expense:', error);
+        }
     };
 
     return (
