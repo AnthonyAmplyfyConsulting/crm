@@ -100,8 +100,7 @@ export default function CalendarPage() {
 
             let assigneeId = null;
             if (assignee !== 'Me') {
-                const selectedEmployee = employees.find(emp => emp.full_name === assignee);
-                assigneeId = selectedEmployee?.id;
+                assigneeId = assignee;
             } else {
                 // If 'Me', we need current user ID. 
                 // For now, let's leave assignee null or handle it if we have auth context.
