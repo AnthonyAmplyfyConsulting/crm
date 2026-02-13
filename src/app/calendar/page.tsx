@@ -49,19 +49,45 @@ export default function CalendarPage() {
     const [assignee, setAssignee] = useState("Me");
 
     useEffect(() => {
-        const fetchEmployees = async () => {
-            const { data, error } = await supabase
+        const fetchData = async () => {
+            // Fetch Employees
+            const { data: employeesData, error: employeesError } = await supabase
                 .from('profiles')
                 .select('id, full_name, role');
 
-            if (error) {
-                console.error('Error fetching employees:', error);
-            } else if (data) {
-                setEmployees(data);
+            if (employeesError) {
+                console.error('Error fetching employees:', employeesError);
+            } else if (employeesData) {
+                setEmployees(employeesData);
+            }
+
+            // Fetch Events
+            const { data: eventsData, error: eventsError } = await supabase
+                .from('events')
+                .select(`
+                    *,
+                    assignee_profile:assignee (
+                        full_name
+                    )
+                `);
+
+            if (eventsError) {
+                console.error('Error fetching events:', eventsError);
+            } else if (eventsData) {
+                const mapEvents = eventsData.map((evt: any) => ({
+                    id: evt.id,
+                    title: evt.title,
+                    date: new Date(evt.date),
+                    time: format(new Date(evt.date), 'HH:mm'),
+                    type: evt.type,
+                    assignee: evt.assignee_profile?.full_name || 'Me'
+                }));
+                console.log("Fetched events:", mapEvents);
+                setEvents(mapEvents);
             }
         };
 
-        fetchEmployees();
+        fetchData();
     }, []);
 
     const monthStart = startOfMonth(currentDate);
@@ -89,21 +115,11 @@ export default function CalendarPage() {
             const eventDateTime = new Date(selectedDate);
             eventDateTime.setHours(parseInt(hours), parseInt(minutes));
 
-            // Find assignee ID if possible, otherwise just store ID if we had it. 
-            // The table expects UUID. The dropdown currently gives names. 
-            // We need to map the name back to an ID or update the dropdown to valid values.
-            // Let's look at how I implemented the dropdown.
-            // value={emp.full_name}, but I should use emp.id to get the UUID.
-
-            // Wait, I need to check the dropdown implementation first.
-            // It maps emp.full_name to value. I should change that to emp.id.
-
             let assigneeId = null;
             if (assignee !== 'Me') {
                 assigneeId = assignee;
             } else {
                 // If 'Me', we need current user ID. 
-                // For now, let's leave assignee null or handle it if we have auth context.
                 const { data: { user } } = await supabase.auth.getUser();
                 assigneeId = user?.id;
             }
@@ -116,7 +132,6 @@ export default function CalendarPage() {
                         date: eventDateTime.toISOString(),
                         type: eventType,
                         assignee: assigneeId,
-                        // created_by: // Handled by RLS or default? Schema says references profiles(id).
                     }
                 ])
                 .select()
@@ -136,7 +151,16 @@ export default function CalendarPage() {
                     assignee: assignee // Keep the display name for local state if possible, or we need to map ID back to name
                 };
 
-                setEvents([...events, newEvent]);
+                // Ideally we should re-fetch to get the joined name, but this is fine for now
+                // Actually, if assignee was an ID (not 'Me'), we display ID unless we look it up.
+                // Let's do a simple lookup from employees array
+                let displayAssignee = assignee;
+                if (assignee !== 'Me') {
+                    const emp = employees.find(e => e.id === assignee);
+                    if (emp) displayAssignee = emp.full_name;
+                }
+
+                setEvents([...events, { ...newEvent, assignee: displayAssignee }]);
                 setIsModalOpen(false);
                 setEventTitle("");
                 setEventTime("");
