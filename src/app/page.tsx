@@ -2,8 +2,67 @@
 
 import { Navbar } from "@/components/layout/Navbar";
 import { ArrowUpRight, Users, DollarSign, TrendingUp } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Home() {
+  const [metrics, setMetrics] = useState({
+    totalExpenses: 0,
+    totalLeads: 0,
+    leadsByStatus: { Hot: 0, Warm: 0, Cold: 0 },
+    activeClients: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const supabase = useMemo(() => createClient(), []);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch Leads
+        const { data: leads, error: leadsError } = await supabase
+          .from('leads')
+          .select('status');
+
+        if (leadsError) throw leadsError;
+
+        // Fetch Expenses
+        const { data: expenses, error: expensesError } = await supabase
+          .from('expenses')
+          .select('amount, status');
+
+        if (expensesError) throw expensesError;
+
+        // Process Data
+        const leadsByStatus = (leads || []).reduce((acc: any, lead: any) => {
+          const status = lead.status as "Hot" | "Warm" | "Cold";
+          acc[status] = (acc[status] || 0) + 1;
+          return acc;
+        }, { Hot: 0, Warm: 0, Cold: 0 });
+
+        const totalExpenses = (expenses || [])
+          .filter((e: any) => e.status !== 'Rejected') // Only count Approved/Pending? Or all? Usually Approved + Pending.
+          .reduce((sum: number, e: any) => sum + (e.amount || 0), 0);
+
+        setMetrics({
+          totalExpenses,
+          totalLeads: (leads || []).length,
+          leadsByStatus,
+          activeClients: 0 // No clients table yet
+        });
+
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [supabase]);
+
+  // Calculate percentages for progress bars
+  const getPercent = (count: number) => metrics.totalLeads > 0 ? (count / metrics.totalLeads) * 100 : 0;
+
   return (
     <main className="min-h-screen bg-background text-foreground overflow-x-hidden relative">
       <div className="fixed inset-0 pointer-events-none">
@@ -18,7 +77,7 @@ export default function Home() {
           <h1 className="text-5xl font-heading font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
             Welcome back, Anthony
           </h1>
-          <p className="text-gray-500 text-lg">Here's what's happening at Amplyfy today.</p>
+          <p className="text-gray-500 text-lg">Here&apos;s what&apos;s happening at Amplyfy today.</p>
         </div>
 
         {/* Bento Grid */}
@@ -55,7 +114,7 @@ export default function Home() {
               <Users className="w-5 h-5 text-blood-orange-500 group-hover:scale-110 transition-transform" />
             </div>
             <div>
-              <h3 className="text-3xl font-bold text-gray-900">0</h3>
+              <h3 className="text-3xl font-bold text-gray-900">{metrics.activeClients}</h3>
               <p className="text-xs text-gray-500 mt-1">No active clients</p>
             </div>
           </div>
@@ -67,8 +126,10 @@ export default function Home() {
               <DollarSign className="w-5 h-5 text-orange-500 group-hover:scale-110 transition-transform" />
             </div>
             <div>
-              <h3 className="text-3xl font-bold text-gray-900">$0.00</h3>
-              <p className="text-xs text-gray-500 mt-1">No pending approvals</p>
+              <h3 className="text-3xl font-bold text-gray-900">
+                ${metrics.totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">Total pending & approved</p>
             </div>
           </div>
 
@@ -76,7 +137,7 @@ export default function Home() {
           <div className="md:col-span-2 glass-card p-5 flex flex-col">
             <div className="flex justify-between items-center mb-2">
               <p className="text-gray-500 text-sm font-medium uppercase tracking-wider">Leads Pipeline</p>
-              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500">Total: 0</span>
+              <span className="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-500">Total: {metrics.totalLeads}</span>
             </div>
 
             <div className="space-y-3 flex-1 flex flex-col justify-center">
@@ -84,10 +145,13 @@ export default function Home() {
               <div className="group">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-red-500 font-medium">Hot Leads</span>
-                  <span className="text-gray-400">0</span>
+                  <span className="text-gray-400">{metrics.leadsByStatus.Hot}</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-red-500 w-0" />
+                  <div
+                    className="h-full bg-red-500 transition-all duration-1000 ease-out"
+                    style={{ width: `${getPercent(metrics.leadsByStatus.Hot)}%` }}
+                  />
                 </div>
               </div>
 
@@ -95,10 +159,13 @@ export default function Home() {
               <div className="group">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-orange-500 font-medium">Warm Leads</span>
-                  <span className="text-gray-400">0</span>
+                  <span className="text-gray-400">{metrics.leadsByStatus.Warm}</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-500 w-0" />
+                  <div
+                    className="h-full bg-orange-500 transition-all duration-1000 ease-out"
+                    style={{ width: `${getPercent(metrics.leadsByStatus.Warm)}%` }}
+                  />
                 </div>
               </div>
 
@@ -106,10 +173,13 @@ export default function Home() {
               <div className="group">
                 <div className="flex justify-between text-xs mb-1">
                   <span className="text-blue-500 font-medium">Cold Leads</span>
-                  <span className="text-gray-400">0</span>
+                  <span className="text-gray-400">{metrics.leadsByStatus.Cold}</span>
                 </div>
                 <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 w-0" />
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-1000 ease-out"
+                    style={{ width: `${getPercent(metrics.leadsByStatus.Cold)}%` }}
+                  />
                 </div>
               </div>
             </div>

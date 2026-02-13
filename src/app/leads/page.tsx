@@ -119,31 +119,23 @@ export default function LeadsPage() {
 
     const handleDeleteLead = async (id: string) => {
         if (confirm("Are you sure you want to delete this lead?")) {
-            // Optimistic update
-            const previousLeads = [...leads];
-            setLeads(leads.filter(l => l.id !== id));
-
             try {
-                // Check if it's a freshly imported lead (mock ID) or a real DB lead
+                // Check if it's a freshly imported lead (mock ID)
                 if (id.startsWith('imported-')) {
-                    // Just local delete is enough for imported ones that weren't saved
-                    // But if we saved them to DB (which we didn't in handleFileUpload yet), we'd need to delete from DB
-                    // Current implementation of 'import' just adds to local state without DB save logic shown in snippet
-                    // So local delete is fine.
+                    setLeads(leads.filter(l => l.id !== id));
                     return;
                 }
 
                 const result = await deleteLead(id);
                 if (result.error) {
                     alert(result.error);
-                    setLeads(previousLeads); // Revert
                 } else {
-                    // Success, no need to alert, just stays deleted
+                    // Success - update local state to reflect change if revalidatePath doesn't trigger immediate UI refresh in this context
+                    setLeads(leads.filter(l => l.id !== id));
                 }
             } catch (err) {
                 console.error(err);
                 alert("Failed to delete lead.");
-                setLeads(previousLeads);
             }
         }
     };

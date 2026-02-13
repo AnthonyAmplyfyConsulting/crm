@@ -101,22 +101,17 @@ export default function ExpensesPage() {
 
     const handleDeleteExpense = async (id: string) => {
         if (confirm("Are you sure you want to delete this expense?")) {
-            // Optimistic update
-            const previousExpenses = [...expenses];
-            setExpenses(expenses.filter(e => e.id !== id));
-
             try {
                 const result = await deleteExpense(id);
                 if (result.error) {
                     alert(result.error);
-                    setExpenses(previousExpenses); // Revert
                 } else {
                     // Success
+                    setExpenses(expenses.filter(e => e.id !== id));
                 }
             } catch (err) {
                 console.error(err);
                 alert("Failed to delete expense.");
-                setExpenses(previousExpenses);
             }
         }
     };
