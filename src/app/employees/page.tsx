@@ -4,6 +4,8 @@ import { Navbar } from "@/components/layout/Navbar";
 import { useState } from "react";
 import { Plus, Search, User, Mail, Phone, Briefcase, Trash2, ShieldCheck, X } from "lucide-react";
 import { inviteEmployee } from "@/actions/employees";
+import { createClient } from "@/lib/supabase/client";
+import { useEffect } from "react";
 
 interface Employee {
     id: string;
@@ -29,6 +31,33 @@ export default function EmployeesPage() {
 
     // Mock Admin Check (In real app, check user role from Supabase)
     const isAdmin = true;
+    const supabase = createClient();
+
+    useEffect(() => {
+        const fetchEmployees = async () => {
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching employees:', error);
+            } else if (data) {
+                const mapEmployees = data.map((profile: any) => ({
+                    id: profile.id,
+                    name: profile.full_name || 'Unknown',
+                    position: profile.position || 'N/A',
+                    email: profile.email || '',
+                    phone: profile.phone || '',
+                    role: profile.role || 'User',
+                    joinedDate: profile.created_at
+                }));
+                setEmployees(mapEmployees);
+            }
+        };
+
+        fetchEmployees();
+    }, []);
 
     const handleAddEmployee = async (e: React.FormEvent) => {
         e.preventDefault();

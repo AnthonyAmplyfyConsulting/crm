@@ -1,7 +1,7 @@
 "use client";
 
 import { Navbar } from "@/components/layout/Navbar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Upload, Search, X, Loader2 } from "lucide-react";
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/client";
@@ -51,7 +51,7 @@ export default function LeadsPage() {
                     status: "Cold",
                 })) as Lead[];
 
-                setLeads([...leads, ...newLeads]);
+                setLeads([...leads, ...newLeads]); // This might need adjustment if we want to save imported leads to DB immediately
                 setIsImporting(false);
             },
             error: (error) => {
@@ -60,6 +60,23 @@ export default function LeadsPage() {
             }
         });
     };
+
+    useEffect(() => {
+        const fetchLeads = async () => {
+            const { data, error } = await supabase
+                .from('leads')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching leads:', error);
+            } else if (data) {
+                setLeads(data);
+            }
+        };
+
+        fetchLeads();
+    }, []);
 
     const handleAddLead = async (e: React.FormEvent) => {
         e.preventDefault();

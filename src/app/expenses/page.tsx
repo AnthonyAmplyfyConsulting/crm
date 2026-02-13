@@ -1,7 +1,7 @@
 "use client";
 
 import { Navbar } from "@/components/layout/Navbar";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Upload, Receipt, DollarSign, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -26,6 +26,32 @@ export default function ExpensesPage() {
     const [receipt, setReceipt] = useState<File | null>(null);
 
     const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    useEffect(() => {
+        const fetchExpenses = async () => {
+            const { data, error } = await supabase
+                .from('expenses')
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (error) {
+                console.error('Error fetching expenses:', error);
+            } else if (data) {
+                const mapExpenses = data.map((exp: any) => ({
+                    id: exp.id,
+                    description: exp.description,
+                    amount: exp.amount,
+                    date: exp.date,
+                    receiptUrl: exp.receipt_url,
+                    status: exp.status,
+                    submittedBy: "Unknown" // We need a join to get name, or just show ID for now.
+                }));
+                setExpenses(mapExpenses);
+            }
+        };
+
+        fetchExpenses();
+    }, []);
 
     const handleAddExpense = async (e: React.FormEvent) => {
         e.preventDefault();
