@@ -11,7 +11,6 @@ const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Leads", href: "/leads", icon: Users },
     { name: "Expenses", href: "/expenses", icon: Receipt },
-    { name: "Calendar", href: "/calendar", icon: Calendar },
     { name: "Employees", href: "/employees", icon: UserCog }, // Admin only technically
 ];
 
