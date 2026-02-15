@@ -25,12 +25,13 @@ export async function inviteEmployee(prevState: any, formData: FormData) {
     }
 
     const email = formData.get('email') as string
+    const password = formData.get('password') as string
     const name = formData.get('name') as string
     const role = formData.get('role') as string
     const position = formData.get('position') as string
     const phone = formData.get('phone') as string
 
-    if (!email || !name || !role) {
+    if (!email || !password || !name || !role) {
         return { error: 'Missing required fields' }
     }
 
@@ -40,8 +41,11 @@ export async function inviteEmployee(prevState: any, formData: FormData) {
 
     const adminClient = createAdminClient()
 
-    const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: {
+    const { data, error } = await adminClient.auth.admin.createUser({
+        email: email,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
             full_name: name,
             role: role,
             position: position,
@@ -50,11 +54,11 @@ export async function inviteEmployee(prevState: any, formData: FormData) {
     })
 
     if (error) {
-        return { error: `Failed to invite user: ${error.message}` }
+        return { error: `Failed to create user: ${error.message}` }
     }
 
     revalidatePath('/employees')
-    return { success: true, message: 'Invitation sent successfully. The user will receive an email to set their password.' }
+    return { success: true, message: 'Employee created successfully. They can now login with these credentials.' }
 }
 
 export async function deleteEmployee(userId: string) {

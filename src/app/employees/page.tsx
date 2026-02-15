@@ -25,6 +25,7 @@ export default function EmployeesPage() {
     const [name, setName] = useState("");
     const [position, setPosition] = useState("");
     const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [phone, setPhone] = useState("");
     const [role, setRole] = useState<"Admin" | "User">("User");
 
@@ -65,6 +66,7 @@ export default function EmployeesPage() {
         formData.append('name', name);
         formData.append('position', position);
         formData.append('email', email);
+        formData.append('password', password);
         formData.append('phone', phone);
         formData.append('role', role);
 
@@ -110,6 +112,7 @@ export default function EmployeesPage() {
         setName("");
         setPosition("");
         setEmail("");
+        setPassword("");
         setPhone("");
         setRole("User");
     };
@@ -297,7 +300,7 @@ export default function EmployeesPage() {
                                     Create Account
                                 </button>
                                 <p className="text-xs text-center text-gray-500 mt-2">
-                                    User will receive login instructions via email.
+                                    User will be created immediately with these credentials.
                                 </p>
                             </div>
                         </form>
