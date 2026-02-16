@@ -3,7 +3,7 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { useState, useEffect } from "react";
 import { Plus, Search, User, Mail, Phone, Briefcase, Trash2, ShieldCheck, X } from "lucide-react";
-import { inviteEmployee, deleteEmployee } from "@/actions/employees";
+import { createEmployee, deleteEmployee } from "@/actions/employees";
 import { createClient } from "@/lib/supabase/client";
 
 interface Employee {
@@ -71,7 +71,7 @@ export default function EmployeesPage() {
         formData.append('role', role);
 
         try {
-            const result = await inviteEmployee(null, formData);
+            const result = await createEmployee(null, formData);
             if (result.error) {
                 alert(result.error);
             } else {
