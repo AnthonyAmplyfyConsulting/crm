@@ -2,10 +2,10 @@
 
 import { Navbar } from "@/components/layout/Navbar";
 import { useState, useEffect } from "react";
-import { Plus, Upload, Search, X, Loader2, Trash2 } from "lucide-react";
+import { Plus, Upload, Search, X, Loader2, Pencil } from "lucide-react";
 import Papa from "papaparse";
 import { createClient } from "@/lib/supabase/client";
-import { deleteLead } from "@/actions/leads";
+import { deleteLead, updateLead } from "@/actions/leads";
 
 interface Lead {
     id: string;
@@ -21,7 +21,19 @@ export default function LeadsPage() {
     const [leads, setLeads] = useState<Lead[]>([]);
     const [isImporting, setIsImporting] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingLead, setEditingLead] = useState<Lead | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const supabase = createClient();
+
+    // Edit Form State
+    const [editFormData, setEditFormData] = useState({
+        businessName: "",
+        contactName: "",
+        email: "",
+        phone: "",
+        status: "Cold" as "Hot" | "Warm" | "Cold",
+        notes: ""
+    });
 
     // Form State
     const [formData, setFormData] = useState({
@@ -120,7 +132,6 @@ export default function LeadsPage() {
     const handleDeleteLead = async (id: string) => {
         if (confirm("Are you sure you want to delete this lead?")) {
             try {
-                // Check if it's a freshly imported lead (mock ID)
                 if (id.startsWith('imported-')) {
                     setLeads(leads.filter(l => l.id !== id));
                     return;
@@ -130,13 +141,65 @@ export default function LeadsPage() {
                 if (result.error) {
                     alert(result.error);
                 } else {
-                    // Success - update local state to reflect change if revalidatePath doesn't trigger immediate UI refresh in this context
                     setLeads(leads.filter(l => l.id !== id));
                 }
             } catch (err) {
                 console.error(err);
                 alert("Failed to delete lead.");
             }
+        }
+    };
+
+    const openEditModal = (lead: Lead) => {
+        setEditingLead(lead);
+        setEditFormData({
+            businessName: lead.business_name || "",
+            contactName: lead.contact_name || "",
+            email: lead.email || "",
+            phone: lead.phone || "",
+            status: lead.status || "Cold",
+            notes: lead.description || ""
+        });
+    };
+
+    const handleEditLead = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingLead) return;
+
+        setIsSaving(true);
+        try {
+            const result = await updateLead(editingLead.id, {
+                business_name: editFormData.businessName,
+                contact_name: editFormData.contactName,
+                email: editFormData.email,
+                phone: editFormData.phone,
+                status: editFormData.status,
+                description: editFormData.notes
+            });
+
+            if (result.error) {
+                alert(result.error);
+            } else {
+                setLeads(leads.map(l =>
+                    l.id === editingLead.id
+                        ? {
+                            ...l,
+                            business_name: editFormData.businessName,
+                            contact_name: editFormData.contactName,
+                            email: editFormData.email,
+                            phone: editFormData.phone,
+                            status: editFormData.status,
+                            description: editFormData.notes
+                        }
+                        : l
+                ));
+                setEditingLead(null);
+            }
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update lead.");
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -202,11 +265,21 @@ export default function LeadsPage() {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {leads.map((lead) => (
-                                    <tr key={lead.id} className="hover:bg-blood-orange-50/30 transition-colors group">
+                                    <tr
+                                        key={lead.id}
+                                        onClick={() => openEditModal(lead)}
+                                        className="hover:bg-blood-orange-50/30 transition-colors group cursor-pointer"
+                                    >
                                         <td className="p-4 font-medium text-gray-900">{lead.business_name}</td>
                                         <td className="p-4 text-gray-600">{lead.contact_name}</td>
                                         <td className="p-4 text-gray-600">
-                                            <a href={`mailto:${lead.email}`} className="hover:text-blood-orange-600 transition-colors">{lead.email}</a>
+                                            <a
+                                                href={`mailto:${lead.email}`}
+                                                className="hover:text-blood-orange-600 transition-colors"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {lead.email}
+                                            </a>
                                         </td>
                                         <td className="p-4 text-gray-600">{lead.phone}</td>
                                         <td className="p-4">
@@ -221,7 +294,7 @@ export default function LeadsPage() {
                                         <td className="p-4 text-gray-500 text-sm truncate max-w-xs">{lead.description}</td>
                                         <td className="p-4 text-center">
                                             <button
-                                                onClick={() => handleDeleteLead(lead.id)}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteLead(lead.id); }}
                                                 className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors"
                                                 title="Delete Lead"
                                             >
@@ -338,6 +411,111 @@ export default function LeadsPage() {
                                     className="w-full bg-gradient-to-r from-blood-orange-600 to-orange-500 hover:from-blood-orange-500 hover:to-orange-400 text-white font-medium py-2 rounded-lg transition-colors shadow-md"
                                 >
                                     Save Lead
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Lead Modal */}
+            {editingLead && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+                    <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6 relative shadow-2xl">
+                        <button
+                            onClick={() => setEditingLead(null)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        <h2 className="text-xl font-bold text-gray-900 mb-6 font-heading flex items-center gap-2">
+                            <Pencil className="w-5 h-5 text-blood-orange-500" />
+                            Edit Lead
+                        </h2>
+
+                        <form onSubmit={handleEditLead} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Business Name</label>
+                                <input
+                                    type="text"
+                                    required
+                                    value={editFormData.businessName}
+                                    onChange={(e) => setEditFormData({ ...editFormData, businessName: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Contact Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={editFormData.contactName}
+                                        onChange={(e) => setEditFormData({ ...editFormData, contactName: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                    <select
+                                        value={editFormData.status}
+                                        onChange={(e) => setEditFormData({ ...editFormData, status: e.target.value as any })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50 appearance-none"
+                                    >
+                                        <option value="Hot">Hot</option>
+                                        <option value="Warm">Warm</option>
+                                        <option value="Cold">Cold</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                    <input
+                                        type="email"
+                                        required
+                                        value={editFormData.email}
+                                        onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                                    <input
+                                        type="tel"
+                                        value={editFormData.phone}
+                                        onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                                        className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea
+                                    value={editFormData.notes}
+                                    onChange={(e) => setEditFormData({ ...editFormData, notes: e.target.value })}
+                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50 h-24 resize-none"
+                                />
+                            </div>
+
+                            <div className="pt-2">
+                                <button
+                                    type="submit"
+                                    disabled={isSaving}
+                                    className="w-full bg-gradient-to-r from-blood-orange-600 to-orange-500 hover:from-blood-orange-500 hover:to-orange-400 text-white font-medium py-2 rounded-lg transition-colors shadow-md disabled:opacity-60 flex items-center justify-center gap-2"
+                                >
+                                    {isSaving ? (
+                                        <>
+                                            <Loader2 className="w-4 h-4 animate-spin" />
+                                            Saving...
+                                        </>
+                                    ) : (
+                                        'Save Changes'
+                                    )}
                                 </button>
                             </div>
                         </form>
