@@ -144,7 +144,7 @@ export default function EmployeesPage() {
                         <h1 className="text-4xl font-heading font-bold text-gradient-orange">
                             Team Management
                         </h1>
-                        <p className="text-gray-500 mt-1">Manage employee access and roles.</p>
+                        <p className="text-gray-500 dark:text-gray-400 mt-1">Manage employee access and roles.</p>
                     </div>
 
                     <button
@@ -159,11 +159,11 @@ export default function EmployeesPage() {
                 {/* Employees List */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {employees.map((employee) => (
-                        <div key={employee.id} className="glass-card p-6 flex flex-col group relative bg-white/60 border-white/40">
+                        <div key={employee.id} className="glass-card p-6 flex flex-col group relative">
                             <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <button
                                     onClick={() => handleDeleteEmployee(employee.id)}
-                                    className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded transition-colors"
+                                    className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 rounded transition-colors"
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </button>
@@ -174,7 +174,7 @@ export default function EmployeesPage() {
                                     {employee.name.charAt(0)}
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-gray-900">{employee.name}</h3>
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{employee.name}</h3>
                                     <div className="flex items-center gap-2 text-sm text-blood-orange-600 font-medium">
                                         <Briefcase className="w-3 h-3" />
                                         <span>{employee.position}</span>
@@ -183,15 +183,15 @@ export default function EmployeesPage() {
                             </div>
 
                             <div className="space-y-3 mt-auto">
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
+                                <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                                     <Mail className="w-4 h-4 text-gray-400" />
                                     <span>{employee.email}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-600">
+                                <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                                     <Phone className="w-4 h-4 text-gray-400" />
                                     <span>{employee.phone}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-600 pt-2 border-t border-gray-100">
+                                <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400 pt-2 border-t border-gray-100 dark:border-gray-700">
                                     <ShieldCheck className={`w-4 h-4 ${employee.role === 'Admin' ? 'text-yellow-500' : 'text-gray-400'}`} />
                                     <span className={employee.role === 'Admin' ? 'text-yellow-600 font-medium' : ''}>{employee.role} Access</span>
                                 </div>
@@ -199,7 +199,7 @@ export default function EmployeesPage() {
                         </div>
                     ))}
                     {employees.length === 0 && (
-                        <div className="col-span-full p-12 text-center text-gray-500 glass-card bg-white/60 border-white/40">
+                        <div className="col-span-full p-12 text-center text-gray-500 dark:text-gray-400 glass-card">
                             <p>No employees found. Add your first team member.</p>
                         </div>
                     )}
@@ -209,7 +209,7 @@ export default function EmployeesPage() {
             {/* Add Employee Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-                    <div className="bg-white border border-gray-200 rounded-xl w-full max-w-md p-6 relative shadow-2xl">
+                    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl w-full max-w-md p-6 relative shadow-2xl">
                         <button
                             onClick={() => setIsModalOpen(false)}
                             className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
@@ -217,67 +217,67 @@ export default function EmployeesPage() {
                             <X className="w-5 h-5" />
                         </button>
 
-                        <h2 className="text-xl font-bold text-gray-900 mb-6">Add New Employee</h2>
+                        <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Add New Employee</h2>
 
                         <form onSubmit={handleAddEmployee} className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
                                 <input
                                     type="text"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Position</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position</label>
                                 <input
                                     type="text"
                                     value={position}
                                     onChange={(e) => setPosition(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email</label>
                                 <input
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Password</label>
                                 <input
                                     type="password"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
                                     required
                                     minLength={6}
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Phone Number</label>
                                 <input
                                     type="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
+                                    className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blood-orange-500/50"
                                     required
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">Access Level</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Access Level</label>
                                 <div className="flex gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -288,7 +288,7 @@ export default function EmployeesPage() {
                                             onChange={() => setRole("User")}
                                             className="accent-blood-orange-600"
                                         />
-                                        <span className="text-gray-700">Standard User</span>
+                                        <span className="text-gray-700 dark:text-gray-300">Standard User</span>
                                     </label>
                                     <label className="flex items-center gap-2 cursor-pointer">
                                         <input
@@ -299,7 +299,7 @@ export default function EmployeesPage() {
                                             onChange={() => setRole("Admin")}
                                             className="accent-blood-orange-600"
                                         />
-                                        <span className="text-gray-700">Admin</span>
+                                        <span className="text-gray-700 dark:text-gray-300">Admin</span>
                                     </label>
                                 </div>
                             </div>
@@ -311,7 +311,7 @@ export default function EmployeesPage() {
                                 >
                                     Create Account
                                 </button>
-                                <p className="text-xs text-center text-gray-500 mt-2">
+                                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
                                     User will be created immediately with these credentials.
                                 </p>
                             </div>
